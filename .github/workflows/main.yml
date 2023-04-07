@@ -1,0 +1,39 @@
+name: Android OTA Extractor
+
+on:
+  workflow_dispatch:
+    inputs:
+      URL:
+        required: true
+      PARTITIONS:
+        default: 'boot recovery'
+        description: 'Partitons to extract. Leave blank to extract all.'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Program
+        run: |
+          mkdir temp
+          cd temp
+          wget https://github.com/tobyxdd/android-ota-payload-extractor/releases/download/v1.1/android-ota-extractor-v1.1-linux-amd64.tar.gz -O tool.tar.gz
+          tar -zxvf tool.tar.gz
+          rm tool.tar.gz
+          chmod +x ./android-ota-extractor
+
+      - name: Download OTA & Extract
+        run: |
+          cd temp
+          wget "${{ github.event.inputs.URL }}" -O OTA.zip
+          ./android-ota-extractor ./OTA.zip ${{ github.event.inputs.PARTITIONS }}
+
+      - name: Upload
+        uses: softprops/action-gh-release@v1
+        with:
+          files: | 
+            temp/*.img
+          name: Extract_${{ github.run_id }}
+          tag_name: ${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
